@@ -31,11 +31,15 @@
     return t.h + ':' + String(t.m).padStart(2, '0');
   }
 
-  // Calcula las 3 tomas DESDE una hora de despertar ya redondeada { h, m }.
+  // Calcula las 3 tomas a partir de una hora de despertar ya redondeada { h, m }.
+  // Empiezan 4 horas DESPUÉS del despertar, no en el despertar mismo: esa
+  // primera pastilla se la toma ella sola en el momento de tocar el botón
+  // (ya está con el teléfono en la mano, no necesita alarma). Las 3 alarmas
+  // son para las siguientes tomas, cada 4 horas: +4h, +8h, +12h.
   function calcularTomas(despertar) {
     var tomas = [];
     for (var i = 0; i < DOSIS_COUNT; i++) {
-      var h = (despertar.h + i * DOSIS_INTERVALO_H) % 24;
+      var h = (despertar.h + (i + 1) * DOSIS_INTERVALO_H) % 24;
       tomas.push({ h: h, m: despertar.m });
     }
     return tomas;
@@ -90,6 +94,8 @@
   }
 
   // Reconstruye las 3 tomas como Dates ABSOLUTOS del día lógico guardado.
+  // Mismo offset que calcularTomas: empiezan 4h después del despertar, no
+  // en el despertar mismo (ver calcularTomas más arriba).
   function tomasAbsolutas(estado) {
     var pf = estado.fechaInicio.split('-').map(Number);
     var pw = estado.horaDespertar.split(':').map(Number);
@@ -97,7 +103,7 @@
     var arr = [];
     for (var i = 0; i < DOSIS_COUNT; i++) {
       var d = new Date(base.getTime());
-      d.setHours(d.getHours() + i * DOSIS_INTERVALO_H);
+      d.setHours(d.getHours() + (i + 1) * DOSIS_INTERVALO_H);
       arr.push(d);
     }
     return arr;
@@ -294,6 +300,17 @@
     }
 
     $('btnLevante').addEventListener('click', alTocarBoton, { once: true });
+
+    // TEMPORAL — SOLO PARA PRUEBAS DE DANIEL. Quitar este bloque entero
+    // junto con el <button id="btnReiniciar"> en index.html y
+    // .boton-reiniciar en style.css antes de que la abuela use la app.
+    var btnReiniciar = $('btnReiniciar');
+    if (btnReiniciar) {
+      btnReiniciar.addEventListener('click', function () {
+        localStorage.removeItem(CLAVE);
+        window.location.reload();
+      });
+    }
   }
 
   // Cualquier error inesperado se muestra en pantalla, nunca en silencio.

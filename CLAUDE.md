@@ -18,7 +18,11 @@ Esto no es un detalle de diseño: es LA restricción del proyecto.
 4. Al tocarlo, se toma la hora de ESE TOQUE (no la de cuando cargó la página)
    como "hora de despertar", redondeada a la media hora más cercana. El botón
    desaparece y no vuelve a aparecer en el resto del día.
-5. Calcula las 3 tomas: hora redondeada, +4h, +8h.
+5. Calcula las 3 tomas EMPEZANDO 4 horas DESPUÉS del despertar (no en el
+   despertar mismo): despertar+4h, +8h, +12h. La primera pastilla del día se
+   la toma ella sola en el momento de tocar el botón — ya está con el
+   teléfono en la mano, no necesita que le suene nada para esa. Las 3 alarmas
+   son para las tomas siguientes.
 6. Dispara un Atajo de iOS (`shortcuts://run-shortcut?name=Pastilla`) que crea
    esas 3 alarmas en el Reloj del iPhone, de una sola vez.
 7. La pantalla muestra la próxima toma destacada arriba, y las 3 horas del
@@ -67,9 +71,10 @@ Antes de tocar el botón (primera apertura del día): SOLO el botón
 
 Después de tocarlo (o en cualquier apertura posterior el mismo día), en
 letras grandes:
-- Destacada arriba: PRÓXIMA — 10:30 am (o "Ya terminaste por hoy" si ya
+- Destacada arriba: PRÓXIMA — 12:30 pm (o "Ya terminaste por hoy" si ya
   pasaron las 3 tomas)
-- Debajo, las 3 horas del día, una por una: 6:30 am · 10:30 am · 2:30 pm
+- Debajo, las 3 horas del día, una por una: 10:30 am · 2:30 pm · 6:30 pm
+  (ejemplo con despertar 6:30 am: las tomas son despertar+4h/+8h/+12h)
 - Al pie, en letra chica, esas mismas 3 horas en 24h tal cual se le mandan
   al Atajo (línea de diagnóstico, ver skill ciclo-dosis)
 
@@ -88,7 +93,9 @@ letras grandes:
   cuando cargó la página (pueden pasar minutos entre abrir la app y tocar).
 - Corte de día a las 4:00 am, no a medianoche: si ella abre a las 2 am no debe
   contar como día nuevo.
-- 3 dosis, espaciadas 4 horas desde el despertar. No hay dosis de madrugada.
+- 3 alarmas, espaciadas 4 horas, EMPEZANDO 4h después del despertar (no en el
+  despertar mismo). La toma del momento de despertar no lleva alarma: se
+  asume que la toma ahí mismo, al tocar el botón.
 - Si toca el botón a media tarde por primera vez en el día, igual arranca desde
   ahí — no intentar adivinar ni corregir.
 - Nada vuelve a mostrar el botón el mismo día lógico. Esa comparación de fecha
@@ -107,6 +114,9 @@ siempre debe mostrar el estado completo para que ella o quien la cuide puedan
 verificar de un vistazo, sin depender de que las notificaciones hayan llegado.
 
 ## Pendiente de confirmar
-Confirmar con quien lleva su tratamiento que "cada 4 horas, 3 veces al día,
-solo en horas de vigilia" es correcto, y si la pastilla se toma con comida.
-Ajustar aquí antes de que ella dependa de la app.
+Confirmar con quien lleva su tratamiento que "cada 4 horas, empezando 4h
+después de despertar (no en el despertar mismo), solo en horas de vigilia"
+es correcto, y si la pastilla se toma con comida. Con esto, contando la toma
+del despertar (sin alarma) más las 3 alarmadas, son 4 tomas repartidas en un
+día de vigilia normal — confirmar que ese conteo total es el que corresponde
+al tratamiento real. Ajustar aquí antes de que ella dependa de la app.

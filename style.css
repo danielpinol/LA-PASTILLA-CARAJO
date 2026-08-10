@@ -137,6 +137,20 @@ main {
   color: var(--tenue);
 }
 
+/* TEMPORAL — SOLO PARA PRUEBAS DE DANIEL. Quitar junto con el <button>
+   #btnReiniciar en index.html y su manejador en app.js. Ver CLAUDE.md. */
+.boton-reiniciar {
+  margin-top: 18px;
+  border: none;
+  background: none;
+  color: var(--tenue);
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 10px;
+}
+
 /* Error visible: nunca fallar en silencio. */
 .error {
   width: min(90vw, 480px);

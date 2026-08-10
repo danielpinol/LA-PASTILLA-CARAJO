@@ -6,8 +6,10 @@ description: Usar al trabajar en la lógica del ciclo de dosis, el cálculo de h
 # Lógica del ciclo de dosis
 
 ## Modelo mental
-El día tiene un único evento que importa: **la primera apertura de la app**.
-Todo lo demás se deriva de ahí. No hay más interacción en el día.
+El día tiene un único evento que importa: **el primer toque del botón
+"YA ME LEVANTÉ"** (no la apertura de la app — la app puede abrirse sin que
+eso dispare nada; ver skill ui-abuela / CLAUDE.md para el flujo del botón).
+Todo lo demás se deriva de ese toque. No hay más interacción en el día.
 
 ## Zona horaria — CRÍTICO
 Todo el manejo de tiempo es en hora local de Guatemala (America/Guatemala,
@@ -27,8 +29,10 @@ UTC-6, sin horario de verano).
 {
   "fechaInicio": "2026-08-07",
   "horaDespertar": "6:30",
-  "tomas": ["6:30", "10:30", "14:30"]
+  "tomas": ["10:30", "14:30", "18:30"]
 }
+
+`tomas` NO incluye la hora de despertar — empieza 4h después (ver más abajo).
 
 Nada más. Si el estado se corrompe o no existe, tratar como día nuevo.
 
@@ -41,8 +45,17 @@ de calcular las tomas:
 
 Ejemplos: 6:10 → 6:00 | 6:15 → 6:00 | 6:16 → 6:30 | 6:25 → 6:30 | 6:50 → 7:00
 
-Las 3 tomas se calculan DESDE la hora redondeada, así que también caen
+Las 3 tomas se calculan a partir de la hora redondeada, así que también caen
 siempre en :00 o :30.
+
+## Offset de las 3 tomas: +4h, +8h, +12h (NO +0h)
+Las tomas empiezan 4 horas DESPUÉS del despertar, no en el despertar mismo.
+La primera pastilla del día se la toma ella sola en el momento de tocar el
+botón — ya está con el teléfono en la mano en ese instante, una alarma que
+suena casi al instante no sirve de recordatorio. Las 3 alarmas son para las
+tomas siguientes, cada 4 horas: despertar+4h, +8h, +12h.
+
+Ejemplo: despertar 6:30 am → tomas 10:30 am, 2:30 pm, 6:30 pm.
 
 ## Cálculo del día lógico
 diaLogico(fecha):
@@ -54,10 +67,18 @@ Evita que abrir a las 2 am cuente como día nuevo.
 ## Al abrir la app
 1. Calcular día lógico de ahora
 2. ¿Es distinto al `fechaInicio` guardado?
-   - **Sí** → día nuevo: redondear la hora actual, guardarla como despertar,
-     calcular las 3 tomas (+0h, +4h, +8h), disparar el Atajo, mostrar pantalla
-   - **No** → mismo día: solo mostrar el estado, no recalcular nada, no
-     volver a disparar el Atajo
+   - **Sí** → día nuevo: mostrar SOLO el botón "YA ME LEVANTÉ" (nada se
+     calcula ni se dispara todavía)
+   - **No** → mismo día: mostrar directo el estado guardado, no recalcular
+     nada, no volver a disparar el Atajo, no mostrar el botón
+
+## Al tocar el botón "YA ME LEVANTÉ"
+Se usa la hora de ESE TOQUE (no la de cuando cargó la página — pueden pasar
+minutos entre abrir la app y tocar):
+1. Redondear la hora actual a la media hora más cercana → hora de despertar
+2. Calcular las 3 tomas: despertar+4h, +8h, +12h
+3. Guardar el estado, disparar el Atajo, pintar la pantalla de resultado
+4. El botón desaparece y no vuelve a aparecer hasta el día lógico siguiente
 
 ## Regla crítica
 **Nunca recalcular ni redisparar el Atajo dos veces en el mismo día lógico.**
@@ -65,49 +86,63 @@ Esta es la ÚNICA protección real contra alarmas duplicadas (ver abajo).
 
 ## Integración con Atajos de iOS
 
-### Limitación confirmada del dispositivo
-Shortcuts en este iPhone solo ofrece 3 acciones de Reloj:
-**Set Timer, Add Alarm, Stopwatch.**
-NO existe "Edit Alarm", "Delete Alarm" ni "Toggle Alarm".
+### Acciones de Reloj disponibles (verificado en el iPhone real, ago 2026)
+Shortcuts en este iPhone SÍ ofrece, además de Add Alarm / Set Timer / Stopwatch:
+**Find Alarms, Delete Alarms, Toggle Alarm, Toggle Sleep Alarm.**
 
-Consecuencias, ya decididas — no volver a proponer alternativas:
-- No se pueden reusar 3 alarmas fijas cambiándoles la hora. Descartado.
-- No se pueden borrar las alarmas viejas desde el Atajo. Descartado.
-- No se usa Set Timer (solo uno a la vez, obligaría a encadenar, y una
-  cadena rota = dosis perdida). Descartado por seguridad.
+(Nota histórica: una versión anterior de esta skill decía que estas acciones
+no existían. Era incorrecto — o el iPhone las agregó en una actualización de
+iOS. No asumir limitaciones de Shortcuts sin volver a verificar en el
+dispositivo real, las capacidades cambian entre versiones de iOS.)
 
-### Diseño elegido: Add Alarm, 3 de golpe
-Cada mañana el Atajo crea 3 alarmas nuevas con Add Alarm. Se acumulan en la
-lista del Reloj (quedan apagadas después de sonar). **Esto es aceptado a
-propósito**: se prefiere basura visual sobre cualquier escenario donde una
-dosis no suene. Se limpian a mano cada 1-2 semanas.
+- No se usa Set Timer para las dosis (solo uno a la vez, obligaría a
+  encadenar, y una cadena rota = dosis perdida). Descartado por seguridad.
+- Set Timer sigue descartado por la razón de arriba, pero el resto de la
+  limitación original ya no aplica.
 
-Mitigación: el redondeo hace que siempre caigan en :00 o :30, así la lista
-queda repetitiva pero ordenada.
+### Diseño: Add Alarm nuevas + Delete Alarms de las viejas (dentro del Atajo)
+Cada vez que se toca "YA ME LEVANTÉ", el Atajo:
+1. Busca (Find Alarms, filtro Label = "Pastilla") las alarmas que dejó el
+   día anterior y las guarda en una variable.
+2. Crea las 3 alarmas nuevas de hoy con Add Alarm, todas nombradas "Pastilla"
+   (mismo Label, para poder encontrarlas después).
+3. Recién AL FINAL, borra (Delete Alarms) las que encontró en el paso 1.
+
+El orden importa: las alarmas nuevas se crean ANTES de borrar las viejas, así
+nunca hay una ventana sin ninguna alarma activa si algo interrumpe el Atajo
+a la mitad. Esto reemplaza la limpieza manual cada 1-2 semanas que se
+proponía antes — el Atajo se limpia solo.
+
+Mitigación adicional: el redondeo hace que siempre caigan en :00 o :30.
 
 ### Disparo desde la web
-shortcuts://run-shortcut?name=Pastilla&input=text&text=6:30,10:30,14:30
+shortcuts://run-shortcut?name=Pastilla&input=text&text=10:30,14:30,18:30
 
 El Atajo (armado a mano en el iPhone, una sola vez) recibe el texto, lo parte
-por comas, y por cada hora ejecuta Add Alarm.
+por comas, y por cada hora ejecuta Add Alarm. El texto son las 3 tomas
+(despertar+4h/+8h/+12h) — la hora de despertar en sí NO se manda al Atajo,
+esa pastilla se la toma sin alarma.
 
 Si el Atajo no existe o falla, la app debe seguir mostrando los horarios en
 pantalla — el registro visual no depende del Atajo.
 
 ## Qué mostrar según el momento del día
-- Entre tomas: "ÚLTIMA TOMA: 6:30 am" / "PRÓXIMA: 10:30 am"
-- Después de la 3ª: "Ya terminaste por hoy"
+- Antes de tocar el botón (día nuevo): SOLO el botón "YA ME LEVANTÉ".
+- Después de tocarlo: destacada arriba "PRÓXIMA: 2:30 pm" + debajo las 3
+  horas del día apiladas (10:30 am · 2:30 pm · 6:30 pm en el ejemplo).
+- Después de la 3ª toma: "Ya terminaste por hoy" en el lugar de la destacada
+  (las 3 horas se siguen mostrando abajo, como registro).
 
-La "última toma" se infiere de la hora actual comparada con el arreglo de
-horarios — no se registra que ella confirmó haber tomado la pastilla, porque
-eso requeriría un botón. Es un recordatorio, no un registro médico.
+La "próxima" se infiere de la hora actual comparada con el arreglo de
+horarios — no se registra que ella confirmó haber tomado cada pastilla,
+porque eso requeriría más botones. Es un recordatorio, no un registro médico.
 
 ## Modo diagnóstico (obligatorio en v1)
 El disparo del Atajo no se puede verificar con tests — solo probándolo en un
 iPhone real. Para poder distinguir "falló el cálculo" de "falló el Atajo",
 la pantalla debe mostrar SIEMPRE, en letra chica al pie:
 
-  6:30 · 10:30 · 14:30
+  10:30 · 14:30 · 18:30
 
 Las 3 horas calculadas, en formato 24h, tal cual se le mandan al Atajo.
 
@@ -126,7 +161,7 @@ probado y estable. No quitarla antes.
 - Zona horaria: simular 8:00 pm hora Guatemala → el día lógico debe ser el día
   correcto, NO el siguiente
 - Abrir a las 2 am no cuenta como día nuevo
-- Abrir dos veces el mismo día no redispara el Atajo (crítico: única defensa
-  contra duplicados)
-- Cruce de medianoche: despertar 22:00 → tomas 22:00, 2:00, 6:00
+- Tocar el botón dos veces el mismo día no redispara el Atajo (crítico: única
+  defensa contra duplicados)
+- Cruce de medianoche: despertar 22:00 → tomas empiezan en +4h: 2:00, 6:00, 10:00
 - localStorage vacío o corrupto → arranca limpio sin crashear

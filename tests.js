@@ -56,11 +56,12 @@ test('abrir a las 2am NO cuenta como día nuevo', () => {
 
 test('tocar el botón dos veces el mismo día NO recalcula ni redispara', () => {
   // Primer toque: 6:35 am del 7 de agosto -> día nuevo, dispara.
+  // Despertar redondea a 6:30; las tomas empiezan 4h DESPUÉS del despertar.
   const primerToque = new Date(2026, 7, 7, 6, 35, 0);
   const r1 = P.procesarApertura(null, primerToque);
   assert.strictEqual(r1.disparar, true);
   assert.strictEqual(r1.esNuevoDia, true);
-  assert.deepStrictEqual(r1.estado.tomas, ['6:30', '10:30', '14:30']);
+  assert.deepStrictEqual(r1.estado.tomas, ['10:30', '14:30', '18:30']);
 
   // Ella vuelve a abrir esa tarde: la app NO ofrece botón, así que esto simula
   // que procesarApertura se llama con el estado ya guardado (nunca con null).
@@ -71,14 +72,14 @@ test('tocar el botón dos veces el mismo día NO recalcula ni redispara', () => 
   assert.deepStrictEqual(r2.estado, r1.estado);
 });
 
-test('cruce de medianoche: despertar 22:00 -> tomas 22:00, 2:00, 6:00', () => {
+test('cruce de medianoche: despertar 22:00 -> tomas empiezan en +4h: 2:00, 6:00, 10:00', () => {
   const tomas = P.calcularTomas({ h: 22, m: 0 }).map(P.fmt24);
-  assert.deepStrictEqual(tomas, ['22:00', '2:00', '6:00']);
+  assert.deepStrictEqual(tomas, ['2:00', '6:00', '10:00']);
 });
 
 test('localStorage vacío o corrupto: arranca limpio sin crashear', () => {
   const ahora = new Date(2026, 7, 7, 8, 5, 0); // 8:05 am -> redondea a 8:00
-  const esperado = ['8:00', '12:00', '16:00'];
+  const esperado = ['12:00', '16:00', '20:00']; // tomas empiezan 4h después del despertar
 
   const casos = [null, undefined, {}, { fechaInicio: 'basura' }, { tomas: [] }, 'texto suelto', 42];
   for (const c of casos) {
@@ -97,20 +98,21 @@ test('nuevo día real: cambia de fecha y recalcula', () => {
   assert.strictEqual(r.esNuevoDia, true);
   assert.strictEqual(r.disparar, true);
   assert.strictEqual(r.estado.fechaInicio, '2026-08-07');
-  assert.deepStrictEqual(r.estado.tomas, ['7:30', '11:30', '15:30']);
+  assert.deepStrictEqual(r.estado.tomas, ['11:30', '15:30', '19:30']);
 });
 
 test('estado de pantalla: próxima / terminado', () => {
-  const estado = { fechaInicio: '2026-08-07', horaDespertar: '6:30', tomas: ['6:30', '10:30', '14:30'] };
+  // Despertar 6:30 am -> tomas 10:30 am, 2:30 pm, 6:30 pm (despertar+4h/+8h/+12h).
+  const estado = { fechaInicio: '2026-08-07', horaDespertar: '6:30', tomas: ['10:30', '14:30', '18:30'] };
 
-  // Entre la 1ª y la 2ª toma (8:00 am): próxima 10:30.
-  let s = P.estadoPantalla(estado, new Date(2026, 7, 7, 8, 0, 0));
+  // Entre la 1ª y la 2ª toma (12:00 pm): próxima 2:30 pm.
+  let s = P.estadoPantalla(estado, new Date(2026, 7, 7, 12, 0, 0));
   assert.strictEqual(s.terminado, false);
-  assert.strictEqual(P.fmt12(s.ultima), '6:30 am');
-  assert.strictEqual(P.fmt12(s.proxima), '10:30 am');
+  assert.strictEqual(P.fmt12(s.ultima), '10:30 am');
+  assert.strictEqual(P.fmt12(s.proxima), '2:30 pm');
 
-  // Después de la 3ª toma (3:00 pm): terminado.
-  s = P.estadoPantalla(estado, new Date(2026, 7, 7, 15, 0, 0));
+  // Después de la 3ª toma (7:00 pm): terminado.
+  s = P.estadoPantalla(estado, new Date(2026, 7, 7, 19, 0, 0));
   assert.strictEqual(s.terminado, true);
-  assert.strictEqual(P.fmt12(s.ultima), '2:30 pm');
+  assert.strictEqual(P.fmt12(s.ultima), '6:30 pm');
 });
