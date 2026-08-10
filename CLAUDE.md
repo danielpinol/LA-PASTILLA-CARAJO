@@ -13,13 +13,25 @@ Esto no es un detalle de diseño: es LA restricción del proyecto.
 ## Cómo funciona (flujo completo)
 1. Ella se levanta a una hora distinta cada día — por eso una alarma fija no sirve.
 2. Toca el ícono en la pantalla de inicio.
-3. La app detecta que es la primera apertura del día y toma esa hora como
-   "hora de despertar", redondeada a la media hora más cercana.
-4. Calcula las 3 tomas: hora redondeada, +4h, +8h.
-5. Dispara un Atajo de iOS (`shortcuts://run-shortcut?name=Pastilla`) que crea
+3. Si es la primera apertura del día lógico (corte a las 4am), ve UN SOLO
+   botón gigante: "YA ME LEVANTÉ". Nada más en pantalla — ni horas, ni texto.
+4. Al tocarlo, se toma la hora de ESE TOQUE (no la de cuando cargó la página)
+   como "hora de despertar", redondeada a la media hora más cercana. El botón
+   desaparece y no vuelve a aparecer en el resto del día.
+5. Calcula las 3 tomas: hora redondeada, +4h, +8h.
+6. Dispara un Atajo de iOS (`shortcuts://run-shortcut?name=Pastilla`) que crea
    esas 3 alarmas en el Reloj del iPhone, de una sola vez.
-6. El resto del día la app solo MUESTRA el estado. No hay que volver a tocarla.
-7. Al día siguiente, primera apertura → todo se reinicia.
+7. La pantalla muestra la próxima toma destacada arriba, y las 3 horas del
+   día debajo, una por una. El resto del día la app solo MUESTRA el estado
+   — si vuelve a abrirla, ve directo estas horas, nunca el botón de nuevo.
+8. Al día siguiente (después de las 4am), primera apertura → vuelve a
+   aparecer el botón y todo se reinicia.
+
+El botón es la ÚNICA excepción a "cero botones": es el único punto de
+interacción de toda la app, y desaparece apenas cumple su función. Que el
+toque sea explícito (en vez de disparar todo automáticamente al abrir) es
+a propósito: evita que una apertura accidental de la PWA (precarga de Safari,
+etc.) cree alarmas sin que ella realmente se haya levantado.
 
 ## Decisión clave de arquitectura
 **La app no suena. El Reloj de iOS suena.**
@@ -33,34 +45,61 @@ No proponer service workers, Web Audio, ni notificaciones push como sustituto
 de esto. Ya se evaluó y no es confiable en iOS.
 
 ## Reglas de interfaz (obligatorias)
-- **Cero botones que no sean absolutamente necesarios.** Idealmente la pantalla
-  principal no tiene ninguno: solo información.
+- **Cero botones que no sean absolutamente necesarios.** El único permitido es
+  "YA ME LEVANTÉ" (ver flujo arriba) — y desaparece apenas se usa.
 - **Ningún campo de texto. Ningún teclado. Nunca.**
-- Texto enorme: mínimo 28px para info secundaria, 48px+ para lo importante.
-- Alto contraste. Fondo claro, letras oscuras.
-- Una sola pantalla. Sin menús, sin pestañas, sin navegación, sin scroll si se puede evitar.
+- Texto enorme: mínimo 28px para info secundaria, 48px+ para lo importante
+  (24px solo se tolera en la línea de diagnóstico al pie, que es la de menor
+  importancia de toda la pantalla).
+- Alto contraste. Fondo claro, letras oscuras. Dentro de esa base, paleta
+  cubana con personalidad — coral, turquesa y mostaza, como fachadas de
+  La Habana Vieja (ver `style.css`, variables `:root`).
+- Una sola pantalla. Sin menús, sin pestañas, sin navegación. Sin scroll si
+  se puede evitar — solo se tolera scroll vertical (nunca horizontal) como
+  último recurso, si un teléfono muy chico no alcanza a mostrar todo a la vez
+  (p. ej. las 3 horas junto con un aviso de error del Atajo).
 - Sin animaciones ni transiciones que confundan.
 - Si un toque accidental puede romper algo, ese toque no debe existir.
 
 ## Qué muestra la pantalla principal
-En letras grandes, nada más:
-- ÚLTIMA TOMA: 6:30 am
-- PRÓXIMA: 10:30 am
-- (si ya terminaron las 3 del día) "Ya terminaste por hoy"
+Antes de tocar el botón (primera apertura del día): SOLO el botón
+"YA ME LEVANTÉ". Nada más.
+
+Después de tocarlo (o en cualquier apertura posterior el mismo día), en
+letras grandes:
+- Destacada arriba: PRÓXIMA — 10:30 am (o "Ya terminaste por hoy" si ya
+  pasaron las 3 tomas)
+- Debajo, las 3 horas del día, una por una: 6:30 am · 10:30 am · 2:30 pm
+- Al pie, en letra chica, esas mismas 3 horas en 24h tal cual se le mandan
+  al Atajo (línea de diagnóstico, ver skill ciclo-dosis)
 
 ## Stack
 - HTML/CSS/JS puro. Sin framework, sin build step, sin dependencias.
   Este proyecto es chiquito y tiene que seguir funcionando en 2 años sin mantenimiento.
+- 3 archivos: `index.html` (estructura), `style.css` (estilos), `app.js`
+  (lógica del ciclo + interfaz). Nada de TypeScript ni bundlers: cualquier
+  archivo `.ts` acá exigiría un paso de compilación que nadie va a mantener.
 - Estado en localStorage.
-- Se sirve como sitio estático (GitHub Pages sirve perfecto).
+- Se sirve como sitio estático (Vercel).
 
 ## Detalles de lógica
-- "Primera apertura del día" = la fecha guardada en localStorage es distinta a hoy.
+- "Primera apertura del día" = la fecha guardada en localStorage es distinta a hoy
+  → se muestra el botón. La hora de despertar se toma cuando ELLA LO TOCA, no
+  cuando cargó la página (pueden pasar minutos entre abrir la app y tocar).
 - Corte de día a las 4:00 am, no a medianoche: si ella abre a las 2 am no debe
   contar como día nuevo.
 - 3 dosis, espaciadas 4 horas desde el despertar. No hay dosis de madrugada.
-- Si abre la app a media tarde por primera vez en el día, igual arranca desde
+- Si toca el botón a media tarde por primera vez en el día, igual arranca desde
   ahí — no intentar adivinar ni corregir.
+- Nada vuelve a mostrar el botón el mismo día lógico. Esa comparación de fecha
+  es la única protección contra alarmas duplicadas — no tiene que haber forma
+  de deshacerla desde la pantalla que ella usa (ver nota de debug abajo).
+
+## Debug (solo para Daniel, nunca para ella)
+Abrir `index.html?reset=1` borra el estado guardado antes de pintar la
+pantalla, para poder volver a probar el botón sin abrir devtools. No hay
+ningún botón visible para esto — a propósito, para no reabrir el riesgo de
+alarmas duplicadas en la pantalla real.
 
 ## Seguridad
 Esto es un recordatorio, NO el registro oficial del tratamiento. La pantalla

@@ -1,11 +1,20 @@
-// Tests de la skill ciclo-dosis. Sin dependencias externas: node:test + node:assert.
+// Tests de la lógica del ciclo de dosis. Sin dependencias externas: node:test + node:assert.
+// app.js es JS plano sin build step: se requiere tal cual se sirve al navegador,
+// así se prueba el código real y no una copia separada que se puede desincronizar.
+// (La parte de interfaz de app.js no corre acá: está guardada detrás de
+// `if (typeof document === 'undefined') return;`, y Node no tiene document.)
 // Se fija la zona horaria a America/Guatemala ANTES de crear cualquier Date,
 // para que el caso de zona horaria sea real y no dependa de la máquina.
 process.env.TZ = 'America/Guatemala';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const P = require('./logic.js');
+
+require('./app.js');
+const P = global.Pastilla;
+if (!P) {
+  throw new Error('app.js no definió globalThis.Pastilla');
+}
 
 test('redondeo a la media hora más cercana', () => {
   assert.deepStrictEqual(P.redondearMediaHora(6, 10), { h: 6, m: 0 });
@@ -45,17 +54,18 @@ test('abrir a las 2am NO cuenta como día nuevo', () => {
   assert.deepStrictEqual(r.estado, estado);
 });
 
-test('abrir dos veces el mismo día NO redispara el Atajo', () => {
-  // Primera apertura: 6:35 am del 7 de agosto -> nuevo día, dispara.
-  const primera = new Date(2026, 7, 7, 6, 35, 0);
-  const r1 = P.procesarApertura(null, primera);
+test('tocar el botón dos veces el mismo día NO recalcula ni redispara', () => {
+  // Primer toque: 6:35 am del 7 de agosto -> día nuevo, dispara.
+  const primerToque = new Date(2026, 7, 7, 6, 35, 0);
+  const r1 = P.procesarApertura(null, primerToque);
   assert.strictEqual(r1.disparar, true);
   assert.strictEqual(r1.esNuevoDia, true);
   assert.deepStrictEqual(r1.estado.tomas, ['6:30', '10:30', '14:30']);
 
-  // Segunda apertura ese mismo día (por la tarde): NO recalcula, NO dispara.
-  const segunda = new Date(2026, 7, 7, 15, 12, 0);
-  const r2 = P.procesarApertura(r1.estado, segunda);
+  // Ella vuelve a abrir esa tarde: la app NO ofrece botón, así que esto simula
+  // que procesarApertura se llama con el estado ya guardado (nunca con null).
+  const reapertura = new Date(2026, 7, 7, 15, 12, 0);
+  const r2 = P.procesarApertura(r1.estado, reapertura);
   assert.strictEqual(r2.disparar, false);
   assert.strictEqual(r2.esNuevoDia, false);
   assert.deepStrictEqual(r2.estado, r1.estado);
@@ -90,10 +100,10 @@ test('nuevo día real: cambia de fecha y recalcula', () => {
   assert.deepStrictEqual(r.estado.tomas, ['7:30', '11:30', '15:30']);
 });
 
-test('estado de pantalla: última / próxima / terminado', () => {
+test('estado de pantalla: próxima / terminado', () => {
   const estado = { fechaInicio: '2026-08-07', horaDespertar: '6:30', tomas: ['6:30', '10:30', '14:30'] };
 
-  // Entre la 1ª y la 2ª toma (8:00 am): última 6:30, próxima 10:30.
+  // Entre la 1ª y la 2ª toma (8:00 am): próxima 10:30.
   let s = P.estadoPantalla(estado, new Date(2026, 7, 7, 8, 0, 0));
   assert.strictEqual(s.terminado, false);
   assert.strictEqual(P.fmt12(s.ultima), '6:30 am');

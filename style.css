@@ -1,0 +1,151 @@
+:root {
+  /* Paleta cubana: fachadas de La Habana Vieja — coral, turquesa y mostaza
+     sobre un fondo crema soleado. Fondo claro / texto oscuro siempre. */
+  --fondo: #fff3d6;
+  --texto: #241a12;
+  --tenue: #7a6a54;
+  --acento: #e8442c;
+  --acento-sombra: #a82c1a;
+  --acento-texto: #ffffff;
+  --turquesa: #0f9aa4;
+  --turquesa-sombra: #0b6e76;
+  --marco: #f4b400;
+  --exito: #1f8a4c;
+  --exito-sombra: #146336;
+  --alerta: #c8102e;
+  --alerta-sombra: #8a0b20;
+  --alerta-texto: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Nunca scroll horizontal. Vertical solo como último recurso, si algún
+     día un teléfono muy chico no alcanza a mostrar todo (p.ej. con el
+     aviso de error del Atajo a la vez que las 3 horas). */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Una sola pantalla, contenido centrado vertical, márgenes amplios. */
+main {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: max(28px, env(safe-area-inset-top)) 24px
+           max(28px, env(safe-area-inset-bottom)) 24px;
+}
+
+.oculto { display: none !important; }
+
+/* Botón gigante: única acción posible de toda la pantalla. */
+.boton-levante {
+  width: min(88vw, 480px);
+  height: min(58vh, 520px);
+  max-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 44px;
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-family: inherit;
+  font-size: clamp(32px, 9vw, 52px);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.25;
+  padding: 24px;
+  box-shadow: 0 10px 0 var(--acento-sombra), 0 18px 28px rgba(0, 0, 0, 0.25);
+}
+
+.boton-levante:active {
+  transform: translateY(8px);
+  box-shadow: 0 2px 0 var(--acento-sombra), 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+.boton-levante:disabled {
+  opacity: 0.85;
+}
+
+/* Tarjeta destacada: cuál es la próxima toma (o "ya terminaste").
+   Turquesa con marco mostaza, como una placa de fachada habanera. */
+.destacada {
+  width: min(90vw, 480px);
+  background: var(--turquesa);
+  color: var(--acento-texto);
+  border: 5px solid var(--marco);
+  border-radius: 32px;
+  padding: 20px 28px;
+  margin-bottom: 30px;
+  box-shadow: 0 7px 0 var(--turquesa-sombra), 0 12px 20px rgba(0, 0, 0, 0.2);
+}
+
+.destacada.terminado {
+  background: var(--exito);
+  box-shadow: 0 7px 0 var(--exito-sombra), 0 12px 20px rgba(0, 0, 0, 0.2);
+}
+
+.destacada .etiqueta {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  min-height: 1em;
+}
+
+.destacada .valor {
+  font-size: clamp(40px, 11vw, 60px);
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+/* Las 3 horas del día, una debajo de otra. */
+.lista-tomas .hora {
+  font-size: clamp(34px, 9vw, 48px);
+  font-weight: 800;
+  padding: 8px 0;
+}
+
+/* Línea de diagnóstico: las 3 horas 24h tal cual van al Atajo.
+   En el flujo normal (no fija), para que nunca tape ni se superponga
+   con las horas de arriba en pantallas chicas. */
+.diagnostico {
+  margin-top: 22px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--tenue);
+}
+
+/* Error visible: nunca fallar en silencio. */
+.error {
+  width: min(90vw, 480px);
+  background: var(--alerta);
+  color: var(--alerta-texto);
+  font-size: 28px;
+  font-weight: 700;
+  border-radius: 24px;
+  padding: 18px 22px;
+  margin-bottom: 26px;
+  box-shadow: 0 6px 0 var(--alerta-sombra), 0 10px 18px rgba(0, 0, 0, 0.2);
+}
