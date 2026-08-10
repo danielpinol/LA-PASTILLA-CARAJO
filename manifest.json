@@ -1,6 +1,6 @@
 {
-  "name": "Pastilla",
-  "short_name": "Pastilla",
+  "name": "Pastilla Carajo",
+  "short_name": "Pastilla Carajo",
   "description": "Recordatorio de pastilla de un solo toque.",
   "start_url": "./index.html",
   "scope": "./",

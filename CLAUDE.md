@@ -1,4 +1,4 @@
-# CLAUDE.md — Pastilla
+# CLAUDE.md — Pastilla Carajo
 
 ## Qué es esto
 Web app de un solo toque para que mi abuela no pierda la cuenta de su pastilla.

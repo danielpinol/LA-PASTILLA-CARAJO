@@ -32,7 +32,12 @@ html, body {
 }
 
 body {
-  background: var(--fondo);
+  /* Fondo con banderitas cubanas repetidas, muy sutiles (no le restan
+     contraste al texto de encima) — SVG embebido en base64, sin librerías. */
+  background-color: var(--fondo);
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMCwzMikgcm90YXRlKC0xMCAzMCAxOCkiPgogICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjcuMiIgZmlsbD0icmdiYSgwLDYxLDE2NSwwLjIyKSIvPgogICAgPHJlY3QgeD0iMCIgeT0iMTQuNCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjcuMiIgZmlsbD0icmdiYSgwLDYxLDE2NSwwLjIyKSIvPgogICAgPHJlY3QgeD0iMCIgeT0iMjguOCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjcuMiIgZmlsbD0icmdiYSgwLDYxLDE2NSwwLjIyKSIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIwLDAgMzAsMTggMCwzNiIgZmlsbD0icmdiYSgyMDYsMTcsMzgsMC4yNCkiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMTAsMTMuNSAxMS4wNiwxNi41NCAxNC4yOCwxNi42MSAxMS43MSwxOC41NiAxMi42NSwyMS42NCAxMCwxOS44IDcuMzYsMjEuNjQgOC4yOSwxOC41NiA1LjcyLDE2LjYxIDguOTQsMTYuNTQiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC43NSkiLz4KICA8L2c+Cjwvc3ZnPgo=");
+  background-repeat: repeat;
+  background-size: 110px 110px;
   color: var(--texto);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   line-height: 1.4;
