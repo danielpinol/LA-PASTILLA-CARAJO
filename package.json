@@ -1,0 +1,9 @@
+{
+  "name": "pastilla",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Recordatorio de pastilla de un solo toque para iOS (PWA).",
+  "scripts": {
+    "test": "node tests.js"
+  }
+}
