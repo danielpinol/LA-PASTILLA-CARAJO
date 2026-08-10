@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Pastilla</title>
+
+  <!-- Viewport: bloquea el zoom accidental sin romper el escalado base. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+
+  <!-- PWA / "Añadir a pantalla de inicio" en iOS. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pastilla">
+  <meta name="theme-color" content="#faf9f7">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+
+  <style>
+    :root {
+      --fondo: #faf9f7;
+      --texto: #1a1a1a;
+      --tenue: #6b6b6b;
+      --alerta: #a11500;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    body {
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      line-height: 1.4;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    /* Una sola pantalla, contenido centrado vertical, márgenes amplios. */
+    main {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: max(32px, env(safe-area-inset-top)) 28px
+               max(32px, env(safe-area-inset-bottom)) 28px;
+    }
+
+    .bloque {
+      margin: 22px 0;
+    }
+
+    .etiqueta {
+      font-size: 30px;
+      font-weight: 600;
+      color: var(--tenue);
+      letter-spacing: 0.5px;
+    }
+
+    .valor {
+      font-size: 64px;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    /* Mensaje de "ya terminaste" (ocupa el lugar de los bloques). */
+    .terminado {
+      font-size: 52px;
+      font-weight: 800;
+      margin: 22px 0;
+    }
+
+    /* Línea de diagnóstico al pie: las 3 horas 24h tal cual van al Atajo. */
+    .diagnostico {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--tenue);
+    }
+
+    /* Error visible: nunca fallar en silencio. */
+    .error {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--alerta);
+      margin: 22px 0;
+      max-width: 90%;
+    }
+
+    .oculto { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="error" class="error oculto"></div>
+
+    <div id="contenido">
+      <div id="bloqueUltima" class="bloque">
+        <div class="etiqueta">ÚLTIMA TOMA</div>
+        <div id="valorUltima" class="valor">—</div>
+      </div>
+      <div id="bloqueProxima" class="bloque">
+        <div class="etiqueta">PRÓXIMA</div>
+        <div id="valorProxima" class="valor">—</div>
+      </div>
+      <div id="bloqueTerminado" class="terminado oculto">Ya terminaste por hoy</div>
+    </div>
+
+    <div id="diagnostico" class="diagnostico"></div>
+  </main>
+
+  <script src="logic.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var CLAVE = 'pastilla.estado';
+
+      function $(id) { return document.getElementById(id); }
+
+      function mostrarError(msg) {
+        var el = $('error');
+        el.textContent = msg;
+        el.classList.remove('oculto');
+      }
+
+      // Lee el estado de localStorage; si algo falla, devuelve null (día nuevo).
+      function leerEstado() {
+        try {
+          var raw = localStorage.getItem(CLAVE);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function guardarEstado(estado) {
+        try {
+          localStorage.setItem(CLAVE, JSON.stringify(estado));
+        } catch (e) {
+          // Si no se puede persistir, la app sigue mostrando el estado del día.
+          mostrarError('No se pudo guardar el estado, pero la pantalla es correcta.');
+        }
+      }
+
+      // Dispara el Atajo de iOS. Devuelve true si no lanzó error al navegar.
+      // El resultado real (que el Atajo exista) no es detectable desde la web;
+      // por eso el registro visual nunca depende de esto.
+      function dispararAtajo(tomas) {
+        var text = tomas.join(',');
+        var url = 'shortcuts://run-shortcut?name=Pastilla&input=text&text=' +
+                  encodeURIComponent(text);
+        window.location.href = url;
+      }
+
+      function pintarPantalla(estado, ahora) {
+        $('diagnostico').textContent = estado.tomas.join(' · ');
+
+        var s = Pastilla.estadoPantalla(estado, ahora);
+        if (s.terminado) {
+          $('bloqueUltima').classList.add('oculto');
+          $('bloqueProxima').classList.add('oculto');
+          $('bloqueTerminado').classList.remove('oculto');
+          return;
+        }
+        $('bloqueTerminado').classList.add('oculto');
+
+        if (s.ultima) {
+          $('bloqueUltima').classList.remove('oculto');
+          $('valorUltima').textContent = Pastilla.fmt12(s.ultima);
+        } else {
+          $('bloqueUltima').classList.add('oculto');
+        }
+
+        $('bloqueProxima').classList.remove('oculto');
+        $('valorProxima').textContent = s.proxima ? Pastilla.fmt12(s.proxima) : '—';
+      }
+
+      function iniciar() {
+        var ahora = new Date();
+        var r = Pastilla.procesarApertura(leerEstado(), ahora);
+
+        // Pinta SIEMPRE primero, para que el registro visual no dependa del Atajo.
+        pintarPantalla(r.estado, ahora);
+
+        if (r.esNuevoDia) {
+          guardarEstado(r.estado);
+        }
+
+        // El disparo del Atajo va al final: si falla, el error se muestra
+        // pero la pantalla ya quedó con la información correcta.
+        if (r.disparar) {
+          try {
+            dispararAtajo(r.estado.tomas);
+          } catch (e) {
+            mostrarError('No se pudo abrir el Atajo. Las alarmas quizá no se crearon: ' +
+                         (e && e.message ? e.message : e));
+          }
+        }
+      }
+
+      // Cualquier error inesperado se muestra en pantalla, nunca en silencio.
+      try {
+        iniciar();
+      } catch (e) {
+        mostrarError('Error al iniciar: ' + (e && e.message ? e.message : e));
+      }
+    })();
+  </script>
+</body>
+</html>
