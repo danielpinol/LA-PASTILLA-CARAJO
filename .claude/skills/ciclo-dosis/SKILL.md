@@ -102,6 +102,25 @@ La "última toma" se infiere de la hora actual comparada con el arreglo de
 horarios — no se registra que ella confirmó haber tomado la pastilla, porque
 eso requeriría un botón. Es un recordatorio, no un registro médico.
 
+## Modo diagnóstico (obligatorio en v1)
+El disparo del Atajo no se puede verificar con tests — solo probándolo en un
+iPhone real. Para poder distinguir "falló el cálculo" de "falló el Atajo",
+la pantalla debe mostrar SIEMPRE, en letra chica al pie:
+
+  6:30 · 10:30 · 14:30
+
+Las 3 horas calculadas, en formato 24h, tal cual se le mandan al Atajo.
+
+Esto permite que al probar en el iPhone se vea de inmediato:
+- Si las horas están mal → el bug está en el cálculo (redondeo o timezone)
+- Si las horas están bien pero no hay alarmas → el bug está en el Atajo o la URL
+
+Además, si el disparo del Atajo falla o el navegador lo bloquea, la app debe
+capturar el error y mostrarlo en pantalla en vez de fallar en silencio.
+
+Esta línea de diagnóstico se puede quitar más adelante, cuando el flujo esté
+probado y estable. No quitarla antes.
+
 ## Tests que deben existir
 - Redondeo: 6:10→6:00, 6:15→6:00, 6:16→6:30, 6:25→6:30, 6:50→7:00, 23:50→00:00
 - Zona horaria: simular 8:00 pm hora Guatemala → el día lógico debe ser el día
