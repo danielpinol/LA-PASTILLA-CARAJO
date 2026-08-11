@@ -8,6 +8,14 @@
   var DOSIS_COUNT = 3;         // 3 tomas al día.
   var DOSIS_INTERVALO_H = 4;   // Cada 4 horas.
 
+  // Horario de silencio: nunca se crea una alarma real en este rango, aunque
+  // el cálculo +4h/+8h/+12h haya puesto una toma ahí. Pensado para toques
+  // accidentales del botón (p. ej. de tarde-noche, que empujan alguna toma a
+  // la madrugada) — no queremos despertarla con una alarma a esa hora.
+  // Ventana cruza medianoche: 10:30pm inclusive -> 6:30am exclusive.
+  var SILENCIO_INICIO_MIN = 22 * 60 + 30; // 10:30 pm
+  var SILENCIO_FIN_MIN = 6 * 60 + 30;     // 6:30 am
+
   // Redondea una hora (h, m) a la media hora más cercana.
   //   minutos 0-15  -> :00 de esa hora
   //   minutos 16-45 -> :30 de esa hora
@@ -46,6 +54,22 @@
     var h12 = h % 12;
     if (h12 === 0) h12 = 12;
     return h12 + ':' + String(m).padStart(2, '0') + ' ' + ap;
+  }
+
+  // ¿"H:MM" cae en el horario de silencio (10:30pm–6:30am)?
+  function enSilencio(hhmm) {
+    var partes = hhmm.split(':').map(Number);
+    var min = partes[0] * 60 + partes[1];
+    return min >= SILENCIO_INICIO_MIN || min < SILENCIO_FIN_MIN;
+  }
+
+  // De la lista de tomas ("H:MM"[]), devuelve solo las que SÍ deben llevar
+  // alarma real — las que caen en horario de silencio se excluyen. Puede
+  // devolver un arreglo vacío (p. ej. toque accidental de tarde-noche donde
+  // las 3 tomas caen de madrugada): en ese caso no hay que disparar el
+  // Atajo en absoluto, ver dispararAtajo en el bloque de interfaz.
+  function tomasConAlarma(tomasHHMM) {
+    return tomasHHMM.filter(function (t) { return !enSilencio(t); });
   }
 
   // Calcula las 3 tomas a partir de una hora de despertar ya redondeada { h, m }.
@@ -160,6 +184,8 @@
     redondearMediaHora: redondearMediaHora,
     fmt24: fmt24,
     paraAtajo: paraAtajo,
+    enSilencio: enSilencio,
+    tomasConAlarma: tomasConAlarma,
     fmt12: fmt12,
     calcularTomas: calcularTomas,
     fechaLocalYMD: fechaLocalYMD,
@@ -226,7 +252,15 @@
   // Dispara el Atajo de iOS. Si el navegador nunca pierde el foco (indicio
   // de que no se abrió Shortcuts), lo avisa en pantalla: nunca falla en silencio.
   function dispararAtajo(tomas) {
-    var text = tomas.map(Pastilla.paraAtajo).join(',');
+    var conAlarma = Pastilla.tomasConAlarma(tomas);
+    if (conAlarma.length === 0) {
+      // Las 3 tomas de hoy caen en horario de silencio (10:30pm-6:30am):
+      // no hay nada que alarmar. No abrir el Atajo con texto vacío — un
+      // toma vacía ahí reproduciría el mismo bug que paraAtajo() arregló
+      // (el parser de iOS puede interpretar texto vacío como "ahora").
+      return;
+    }
+    var text = conAlarma.map(Pastilla.paraAtajo).join(',');
     var url = 'shortcuts://run-shortcut?name=Pastilla&input=text&text=' +
               encodeURIComponent(text);
 
@@ -254,7 +288,10 @@
   }
 
   function pintarResultado(estado, ahora) {
-    $('diagnostico').textContent = estado.tomas.map(Pastilla.paraAtajo).join(' · ');
+    var conAlarma = Pastilla.tomasConAlarma(estado.tomas);
+    $('diagnostico').textContent = conAlarma.length > 0
+      ? conAlarma.map(Pastilla.paraAtajo).join(' · ')
+      : 'sin alarmas (horario de silencio 10:30pm-6:30am)';
 
     var s = Pastilla.estadoPantalla(estado, ahora);
     var destacada = $('destacada');

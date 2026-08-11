@@ -44,6 +44,27 @@ test('formato que recibe el Atajo (am/pm explícito, sin ambigüedad)', () => {
   assert.strictEqual(P.paraAtajo('23:00'), '11:00 PM');
 });
 
+test('horario de silencio (10:30pm-6:30am): no se alarman tomas en madrugada', () => {
+  // Límites: 10:30pm SÍ es silencio (inclusive), 6:30am NO lo es (exclusive).
+  assert.strictEqual(P.enSilencio('22:29'), false);
+  assert.strictEqual(P.enSilencio('22:30'), true);
+  assert.strictEqual(P.enSilencio('2:00'), true);
+  assert.strictEqual(P.enSilencio('6:29'), true);
+  assert.strictEqual(P.enSilencio('6:30'), false);
+  assert.strictEqual(P.enSilencio('12:00'), false);
+
+  // Toque accidental ~6:30pm: tomas 10:30pm/2:30am/6:30am -> solo la última
+  // (6:30am, justo en el borde) queda con alarma real.
+  assert.deepStrictEqual(P.tomasConAlarma(['22:30', '2:30', '6:30']), ['6:30']);
+
+  // Toque accidental ~7pm: las 3 tomas (11pm/3am/7am) caen en silencio salvo
+  // la última -> solo se alarma esa.
+  assert.deepStrictEqual(P.tomasConAlarma(['23:00', '3:00', '7:00']), ['7:00']);
+
+  // Día normal (despertar 6:30am): ninguna toma cae en silencio.
+  assert.deepStrictEqual(P.tomasConAlarma(['10:30', '14:30', '18:30']), ['10:30', '14:30', '18:30']);
+});
+
 test('zona horaria: 8pm en Guatemala NO adelanta el día lógico', () => {
   // 8:00 pm del 7 de agosto en Guatemala = 02:00 UTC del 8 de agosto.
   // El bug clásico (toISOString) daría "2026-08-08"; la hora local da "2026-08-07".

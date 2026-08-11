@@ -60,6 +60,34 @@ tomas siguientes, cada 4 horas: despertar+4h, +8h, +12h.
 
 Ejemplo: despertar 6:30 am → tomas 10:30 am, 2:30 pm, 6:30 pm.
 
+## Horario de silencio: 10:30pm–6:30am nunca lleva alarma real
+Motivo: la abuela puede tocar el botón sin querer. Un toque accidental de
+tarde-noche (p. ej. 6:30pm) calcularía tomas a las 10:30pm, 2:30am y 6:30am
+— y no queremos que le suene una alarma de madrugada por un toque que ni
+fue real.
+
+Regla: de las 3 tomas calculadas, cualquiera que caiga en el rango
+[10:30pm, 6:30am) (10:30pm inclusive, 6:30am exclusive — cruza medianoche)
+NO recibe alarma. Las que caen fuera del rango sí, normalmente. Si las 3
+cayeran adentro, no se dispara el Atajo en absoluto (ver más abajo el
+porqué: mandar texto vacío reabriría el bug de "3:00 AM explícito").
+
+Importante — esto NO cambia lo que se calcula ni lo que se muestra en
+pantalla: las 3 horas siguen siendo despertar+4h/+8h/+12h y se siguen
+mostrando las 3, tengan o no alarma. Solo cambia cuáles de esas 3 se le
+mandan al Atajo (y por lo tanto cuáles aparecen en la línea de diagnóstico,
+ver "Modo diagnóstico" más abajo).
+
+`Pastilla.enSilencio(hhmm)` decide si una toma individual cae en el rango.
+`Pastilla.tomasConAlarma(tomasHHMM)` filtra un arreglo de tomas y devuelve
+solo las que sí llevan alarma — es la función que se usa antes de armar el
+texto del Atajo y la línea de diagnóstico.
+
+No implementado (pendiente de confirmar con quien lleva el tratamiento, ver
+CLAUDE.md): si una toma que cae en silencio debería en cambio reubicarse
+(p. ej. correrse a las 6:30am) en vez de simplemente perderse. Por ahora se
+pierde esa alarma sin más.
+
 ## Cálculo del día lógico
 diaLogico(fecha):
   si fecha.hora < 4:  devolver fecha_de_ayer
@@ -80,7 +108,8 @@ Se usa la hora de ESE TOQUE (no la de cuando cargó la página — pueden pasar
 minutos entre abrir la app y tocar):
 1. Redondear la hora actual a la media hora más cercana → hora de despertar
 2. Calcular las 3 tomas: despertar+4h, +8h, +12h
-3. Guardar el estado, disparar el Atajo, pintar la pantalla de resultado
+3. Guardar el estado, disparar el Atajo (solo con las tomas fuera del
+   horario de silencio, ver sección arriba), pintar la pantalla de resultado
 4. El botón desaparece y no vuelve a aparecer hasta el día lógico siguiente
 
 ## Regla crítica
@@ -166,13 +195,18 @@ la pantalla debe mostrar SIEMPRE, en letra chica al pie:
 
   10:30 AM · 2:30 PM · 6:30 PM
 
-Las 3 horas calculadas, tal cual se le mandan al Atajo — mismo formato
-"H:MM AM/PM" que recibe el Atajo, no el 24h interno (ver "Disparo desde la
-web" arriba para el porqué de am/pm explícito).
+Las tomas que SÍ llevan alarma (`Pastilla.tomasConAlarma`), tal cual se le
+mandan al Atajo — mismo formato "H:MM AM/PM" que recibe el Atajo, no el 24h
+interno (ver "Disparo desde la web" arriba para el porqué de am/pm
+explícito). Si el horario de silencio dejó las 3 tomas sin alarma, la línea
+dice "sin alarmas (horario de silencio 10:30pm-6:30am)" en vez de horas —
+así se distingue de un fallo real del Atajo.
 
 Esto permite que al probar en el iPhone se vea de inmediato:
 - Si las horas están mal → el bug está en el cálculo (redondeo o timezone)
 - Si las horas están bien pero no hay alarmas → el bug está en el Atajo o la URL
+  (o, si la línea dice "sin alarmas (horario de silencio)", es esperado —
+  no es un bug)
 
 Además, si el disparo del Atajo falla o el navegador lo bloquea, la app debe
 capturar el error y mostrarlo en pantalla en vez de fallar en silencio.
@@ -192,3 +226,6 @@ probado y estable. No quitarla antes.
 - paraAtajo: "0:00"→"12:00 AM", "3:00"→"3:00 AM", "12:00"→"12:00 PM",
   "14:30"→"2:30 PM", "23:00"→"11:00 PM" (cubre el cruce de mediodía/medianoche,
   donde estaba el bug real)
+- Horario de silencio: 22:29 no es silencio, 22:30 sí (límite inclusive),
+  6:29 sí, 6:30 no (límite exclusive); toque accidental de tarde-noche donde
+  solo la toma del borde (6:30am) queda con alarma

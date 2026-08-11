@@ -23,12 +23,19 @@ Esto no es un detalle de diseño: es LA restricción del proyecto.
    la toma ella sola en el momento de tocar el botón — ya está con el
    teléfono en la mano, no necesita que le suene nada para esa. Las 3 alarmas
    son para las tomas siguientes.
-6. Dispara un Atajo de iOS (`shortcuts://run-shortcut?name=Pastilla`) que crea
-   esas 3 alarmas en el Reloj del iPhone, de una sola vez.
-7. La pantalla muestra la próxima toma destacada arriba, y las 3 horas del
-   día debajo, una por una. El resto del día la app solo MUESTRA el estado
-   — si vuelve a abrirla, ve directo estas horas, nunca el botón de nuevo.
-8. Al día siguiente (después de las 4am), primera apertura → vuelve a
+6. De esas 3, las que caigan en horario de silencio (10:30pm–6:30am) NO se
+   alarman — un toque accidental de tarde-noche no debe terminar
+   despertándola de madrugada. Solo se alarman las que caen fuera de esa
+   ventana; si las 3 cayeran adentro, no se dispara el Atajo (ver skill
+   ciclo-dosis).
+7. Dispara un Atajo de iOS (`shortcuts://run-shortcut?name=Pastilla`) que crea
+   esas alarmas (las que quedaron tras el filtro de silencio) en el Reloj
+   del iPhone, de una sola vez.
+8. La pantalla muestra la próxima toma destacada arriba, y las 3 horas del
+   día debajo, una por una (las 3 calculadas, tengan o no alarma real — ver
+   punto 6). El resto del día la app solo MUESTRA el estado — si vuelve a
+   abrirla, ve directo estas horas, nunca el botón de nuevo.
+9. Al día siguiente (después de las 4am), primera apertura → vuelve a
    aparecer el botón y todo se reinicia.
 
 El botón es la ÚNICA excepción a "cero botones": es el único punto de
@@ -99,6 +106,12 @@ letras grandes:
   asume que la toma ahí mismo, al tocar el botón.
 - Si toca el botón a media tarde por primera vez en el día, igual arranca desde
   ahí — no intentar adivinar ni corregir.
+- Horario de silencio 10:30pm–6:30am: ninguna toma que caiga ahí recibe alarma
+  real, aunque sí se sigue mostrando en pantalla (las 3 horas calculadas no
+  cambian, solo cambia cuáles de ellas se mandan al Atajo). Protege contra
+  toques accidentales de tarde-noche que empujarían una toma a la madrugada.
+  Ver `Pastilla.enSilencio` / `Pastilla.tomasConAlarma` en `app.js` y skill
+  ciclo-dosis.
 - Nada vuelve a mostrar el botón el mismo día lógico. Esa comparación de fecha
   es la única protección contra alarmas duplicadas — no tiene que haber forma
   de deshacerla desde la pantalla que ella usa (ver nota de debug abajo).
@@ -121,3 +134,9 @@ es correcto, y si la pastilla se toma con comida. Con esto, contando la toma
 del despertar (sin alarma) más las 3 alarmadas, son 4 tomas repartidas en un
 día de vigilia normal — confirmar que ese conteo total es el que corresponde
 al tratamiento real. Ajustar aquí antes de que ella dependa de la app.
+
+Nota: "solo en horas de vigilia" ya está parcialmente resuelto — el horario
+de silencio (10:30pm–6:30am, ver arriba) evita alarmas de madrugada, pero
+si una toma cae ahí simplemente se pierde esa alarma (no se reprograma ni se
+corre a otra hora). Falta confirmar si eso es aceptable o si el tratamiento
+requiere que esa dosis se reubique en vez de omitirse.
