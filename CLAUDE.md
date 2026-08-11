@@ -75,8 +75,9 @@ letras grandes:
   pasaron las 3 tomas)
 - Debajo, las 3 horas del día, una por una: 10:30 am · 2:30 pm · 6:30 pm
   (ejemplo con despertar 6:30 am: las tomas son despertar+4h/+8h/+12h)
-- Al pie, en letra chica, esas mismas 3 horas en 24h tal cual se le mandan
-  al Atajo (línea de diagnóstico, ver skill ciclo-dosis)
+- Al pie, en letra chica, esas mismas 3 horas tal cual se le mandan al Atajo
+  — formato "H:MM AM/PM" explícito, no 24h (línea de diagnóstico, ver skill
+  ciclo-dosis; el porqué del am/pm explícito también está ahí)
 
 ## Stack
 - HTML/CSS/JS puro. Sin framework, sin build step, sin dependencias.

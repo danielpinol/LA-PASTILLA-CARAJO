@@ -33,6 +33,17 @@ test('formato 24h que espera el Atajo (sin cero a la izquierda)', () => {
   assert.strictEqual(P.fmt24({ h: 0, m: 0 }), '0:00');
 });
 
+test('formato que recibe el Atajo (am/pm explícito, sin ambigüedad)', () => {
+  // "3:00" sin marcador es ambiguo para el parser de iOS y podía leerse
+  // como "ahora" en vez de 3am — por eso el Atajo recibe am/pm explícito.
+  assert.strictEqual(P.paraAtajo('0:00'), '12:00 AM');
+  assert.strictEqual(P.paraAtajo('3:00'), '3:00 AM');
+  assert.strictEqual(P.paraAtajo('6:30'), '6:30 AM');
+  assert.strictEqual(P.paraAtajo('12:00'), '12:00 PM');
+  assert.strictEqual(P.paraAtajo('14:30'), '2:30 PM');
+  assert.strictEqual(P.paraAtajo('23:00'), '11:00 PM');
+});
+
 test('zona horaria: 8pm en Guatemala NO adelanta el día lógico', () => {
   // 8:00 pm del 7 de agosto en Guatemala = 02:00 UTC del 8 de agosto.
   // El bug clásico (toISOString) daría "2026-08-08"; la hora local da "2026-08-07".

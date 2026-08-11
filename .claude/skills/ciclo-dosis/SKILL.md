@@ -22,7 +22,10 @@ UTC-6, sin horario de verano).
   `toISOString().split('T')[0]` — ese es el bug típico: a las 8 pm del 7 de
   agosto en Guatemala ya es 8 de agosto en UTC, y la app pensaría que empezó
   un día nuevo.
-- Las horas que se mandan al Atajo van en hora local, formato 24h ("14:30").
+- Internamente (estado, cálculos, día lógico) todo se guarda y compara en
+  hora local, formato 24h ("14:30"). Lo que se manda AL ATAJO es distinto:
+  ver "Disparo desde la web" más abajo — el texto que recibe el Atajo lleva
+  am/pm explícito, no 24h crudo.
 - No hay horario de verano, no hay saltos de hora que manejar.
 
 ## Estado en localStorage
@@ -116,15 +119,34 @@ proponía antes — el Atajo se limpia solo.
 Mitigación adicional: el redondeo hace que siempre caigan en :00 o :30.
 
 ### Disparo desde la web
-shortcuts://run-shortcut?name=Pastilla&input=text&text=10:30,14:30,18:30
+shortcuts://run-shortcut?name=Pastilla&input=text&text=10:30 AM,2:30 PM,6:30 PM
 
 El Atajo (armado a mano en el iPhone, una sola vez) recibe el texto, lo parte
-por comas, y por cada hora ejecuta Add Alarm. El texto son las 3 tomas
-(despertar+4h/+8h/+12h) — la hora de despertar en sí NO se manda al Atajo,
-esa pastilla se la toma sin alarma.
+por comas, y por cada hora ejecuta "Get dates from text" + Add Alarm. El
+texto son las 3 tomas (despertar+4h/+8h/+12h) — la hora de despertar en sí
+NO se manda al Atajo, esa pastilla se la toma sin alarma.
 
 Si el Atajo no existe o falla, la app debe seguir mostrando los horarios en
 pantalla — el registro visual no depende del Atajo.
+
+**Por qué am/pm explícito y no 24h crudo (bug real, ago 2026):** en una
+prueba real apareció una alarma pegada a la hora exacta en que se tocó el
+botón, algo que no debería pasar nunca (ver offset +4h/+8h/+12h arriba). Se
+descartó el código web línea por línea — nunca manda "ahora" a ningún lado.
+La causa más probable es la acción "Get dates from text" dentro del Atajo:
+usa el parser de lenguaje natural de iOS (NSDataDetector), y un texto tipo
+"3:00" (sin am/pm) es ambiguo para ese parser — en vez de leerlo como
+notación militar estricta (3am), puede resolverlo como "la hora más cercana
+a ahora", que en la prueba coincidió con la hora del toque. Coincide con el
+caso real: despertar ~3:00pm, la 3ª toma (despertar+12h) cae en "3:00" (3am
+del día siguiente), y si el parser la lee como "3:00pm de hoy" en vez de
+"3:00am", queda pegada al momento de tocar el botón.
+
+Fix: `Pastilla.paraAtajo(hhmm)` en `app.js` convierte cada toma de "H:MM" 24h
+a "H:MM AM/PM" antes de mandarla al Atajo (y antes de pintarla en la línea
+de diagnóstico — deben ser SIEMPRE el mismo texto, ver sección de abajo). Con
+am/pm explícito no hay interpretación ambigua posible. No requiere tocar el
+Atajo en el iPhone, solo lo que la web le manda como texto.
 
 ## Qué mostrar según el momento del día
 - Antes de tocar el botón (día nuevo): SOLO el botón "YA ME LEVANTÉ".
@@ -142,9 +164,11 @@ El disparo del Atajo no se puede verificar con tests — solo probándolo en un
 iPhone real. Para poder distinguir "falló el cálculo" de "falló el Atajo",
 la pantalla debe mostrar SIEMPRE, en letra chica al pie:
 
-  10:30 · 14:30 · 18:30
+  10:30 AM · 2:30 PM · 6:30 PM
 
-Las 3 horas calculadas, en formato 24h, tal cual se le mandan al Atajo.
+Las 3 horas calculadas, tal cual se le mandan al Atajo — mismo formato
+"H:MM AM/PM" que recibe el Atajo, no el 24h interno (ver "Disparo desde la
+web" arriba para el porqué de am/pm explícito).
 
 Esto permite que al probar en el iPhone se vea de inmediato:
 - Si las horas están mal → el bug está en el cálculo (redondeo o timezone)
@@ -165,3 +189,6 @@ probado y estable. No quitarla antes.
   defensa contra duplicados)
 - Cruce de medianoche: despertar 22:00 → tomas empiezan en +4h: 2:00, 6:00, 10:00
 - localStorage vacío o corrupto → arranca limpio sin crashear
+- paraAtajo: "0:00"→"12:00 AM", "3:00"→"3:00 AM", "12:00"→"12:00 PM",
+  "14:30"→"2:30 PM", "23:00"→"11:00 PM" (cubre el cruce de mediodía/medianoche,
+  donde estaba el bug real)

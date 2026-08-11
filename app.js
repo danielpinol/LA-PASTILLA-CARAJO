@@ -26,9 +26,26 @@
   }
 
   // Formatea { h, m } a "H:MM" 24h, sin cero a la izquierda en la hora.
-  // Este es el formato exacto que espera el Atajo.
+  // Formato de almacenamiento interno (estado.tomas, diaLogico, etc).
+  // NO es lo que recibe el Atajo — ver paraAtajo() para eso.
   function fmt24(t) {
     return t.h + ':' + String(t.m).padStart(2, '0');
+  }
+
+  // Convierte "H:MM" 24h a "H:MM AM/PM" — el formato que efectivamente se
+  // manda al Atajo (ver paraAtajo más abajo, y dispararAtajo en el bloque
+  // de interfaz). Un texto como "3:00" es ambiguo para el parser de
+  // lenguaje natural de iOS (Get dates from text / NSDataDetector): puede
+  // leerlo como la hora más cercana a "ahora" en vez de como notación
+  // militar estricta, lo que en la práctica creaba una alarma pegada al
+  // momento de tocar el botón. Con am/pm explícito no hay ambigüedad posible.
+  function paraAtajo(hhmm) {
+    var partes = hhmm.split(':').map(Number);
+    var h = partes[0], m = partes[1];
+    var ap = h < 12 ? 'AM' : 'PM';
+    var h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return h12 + ':' + String(m).padStart(2, '0') + ' ' + ap;
   }
 
   // Calcula las 3 tomas a partir de una hora de despertar ya redondeada { h, m }.
@@ -142,6 +159,7 @@
     DOSIS_INTERVALO_H: DOSIS_INTERVALO_H,
     redondearMediaHora: redondearMediaHora,
     fmt24: fmt24,
+    paraAtajo: paraAtajo,
     fmt12: fmt12,
     calcularTomas: calcularTomas,
     fechaLocalYMD: fechaLocalYMD,
@@ -208,7 +226,7 @@
   // Dispara el Atajo de iOS. Si el navegador nunca pierde el foco (indicio
   // de que no se abrió Shortcuts), lo avisa en pantalla: nunca falla en silencio.
   function dispararAtajo(tomas) {
-    var text = tomas.join(',');
+    var text = tomas.map(Pastilla.paraAtajo).join(',');
     var url = 'shortcuts://run-shortcut?name=Pastilla&input=text&text=' +
               encodeURIComponent(text);
 
@@ -236,7 +254,7 @@
   }
 
   function pintarResultado(estado, ahora) {
-    $('diagnostico').textContent = estado.tomas.join(' · ');
+    $('diagnostico').textContent = estado.tomas.map(Pastilla.paraAtajo).join(' · ');
 
     var s = Pastilla.estadoPantalla(estado, ahora);
     var destacada = $('destacada');
