@@ -30,7 +30,10 @@ Esto no es un detalle de diseño: es LA restricción del proyecto.
    ciclo-dosis).
 7. Dispara un Atajo de iOS (`shortcuts://run-shortcut?name=Pastilla`) que crea
    esas alarmas (las que quedaron tras el filtro de silencio) en el Reloj
-   del iPhone, de una sola vez.
+   del iPhone, de una sola vez, y borra las del día anterior — todas se crean
+   con el label "Pastilla" justamente para poder encontrarlas y borrarlas al
+   día siguiente. Sin ese borrado el Reloj se llena de alarmas viejas. La
+   receta paso a paso del Atajo está en `ATAJO.md`.
 8. La pantalla muestra la próxima toma destacada arriba, y las 3 horas del
    día debajo, una por una (las 3 calculadas, tengan o no alarma real — ver
    punto 6). El resto del día la app solo MUESTRA el estado — si vuelve a
