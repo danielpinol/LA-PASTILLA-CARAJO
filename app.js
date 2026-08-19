@@ -355,17 +355,6 @@
     }
 
     $('btnLevante').addEventListener('click', alTocarBoton, { once: true });
-
-    // TEMPORAL — SOLO PARA PRUEBAS DE DANIEL. Quitar este bloque entero
-    // junto con el <button id="btnReiniciar"> en index.html y
-    // .boton-reiniciar en style.css antes de que la abuela use la app.
-    var btnReiniciar = $('btnReiniciar');
-    if (btnReiniciar) {
-      btnReiniciar.addEventListener('click', function () {
-        localStorage.removeItem(CLAVE);
-        window.location.reload();
-      });
-    }
   }
 
   // Cualquier error inesperado se muestra en pantalla, nunca en silencio.
