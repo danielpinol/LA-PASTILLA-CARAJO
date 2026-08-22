@@ -235,20 +235,6 @@
     }
   }
 
-  // Solo para pruebas de Daniel: abrir index.html?reset=1 borra el estado
-  // guardado antes de pintar, para poder retocar "YA ME LEVANTÉ" sin abrir
-  // devtools. No hay ningún botón para esto — nunca aparece en la pantalla
-  // que usa la abuela.
-  function limpiarSiPidieronReset() {
-    try {
-      if (new URLSearchParams(window.location.search).has('reset')) {
-        localStorage.removeItem(CLAVE);
-      }
-    } catch (e) {
-      // Si algo falla acá, simplemente no se limpia; no es crítico.
-    }
-  }
-
   // Dispara el Atajo de iOS. Si el navegador nunca pierde el foco (indicio
   // de que no se abrió Shortcuts), lo avisa en pantalla: nunca falla en silencio.
   function dispararAtajo(tomas) {
@@ -337,8 +323,6 @@
   }
 
   function iniciar() {
-    limpiarSiPidieronReset();
-
     var ahora = new Date();
     var r = Pastilla.procesarApertura(leerEstado(), ahora);
 

@@ -99,10 +99,11 @@ Que dispare al TOCAR y no al ABRIR evita que una apertura accidental de la PWA
 
 ### Debug (solo para mí, nunca para ella)
 
-`index.html?reset=1` borra el estado guardado antes de pintar la pantalla.
-No hay ningún botón visible para esto, a propósito. Hubo un botón temporal
-"↺ reiniciar" durante el desarrollo; se quitó antes de instalar en su teléfono
-y **no debe volver**.
+No queda ningún atajo para hacer volver el botón: ni botón visible ni
+`?reset=1` en la URL. Hubo un botón temporal "↺ reiniciar" y después el
+parámetro `?reset=1`; ambos se quitaron una vez terminadas las pruebas y
+**no deben volver**. Si hace falta probar de nuevo, se borra el localStorage
+a mano desde devtools.
 
 ---
 

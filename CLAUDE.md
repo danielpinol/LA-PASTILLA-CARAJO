@@ -120,10 +120,11 @@ letras grandes:
   de deshacerla desde la pantalla que ella usa (ver nota de debug abajo).
 
 ## Debug (solo para Daniel, nunca para ella)
-Abrir `index.html?reset=1` borra el estado guardado antes de pintar la
-pantalla, para poder volver a probar el botón sin abrir devtools. No hay
-ningún botón visible para esto — a propósito, para no reabrir el riesgo de
-alarmas duplicadas en la pantalla real.
+No hay ninguna forma de hacer volver el botón desde la app: ni botón visible
+ni parámetro en la URL. Las pruebas ya se hicieron; para volver a probar hay
+que borrar el localStorage a mano desde devtools. Nada de esto debe volver al
+código — cada atajo para "regresar" el botón reabre el riesgo de alarmas
+duplicadas.
 
 ## Seguridad
 Esto es un recordatorio, NO el registro oficial del tratamiento. La pantalla
