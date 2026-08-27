@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --test)",
+      "Bash(node tests.js)",
+      "Bash(node generate_icons.js)",
+      "Bash(file icon-180.png)",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__deploy_to_vercel",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__list_teams",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__get_deployment",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__list_deployments",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__get_project",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__list_projects",
+      "mcp__d07e0784-86de-44c8-9338-dbea39e4f0df__web_fetch_vercel_url"
+    ]
+  }
+}

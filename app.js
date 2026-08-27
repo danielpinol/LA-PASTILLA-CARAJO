@@ -313,32 +313,99 @@
 
   // Se toma la hora EN ESTE MOMENTO (el del toque), no la de cuando cargó la página.
   function alTocarBoton() {
+    // El listener es permanente (no {once:true}) porque el botón puede volver
+    // a armarse al cambiar el día lógico sin recargar la página (ver revisarDia).
+    // `disabled` es lo que garantiza un solo toque por día.
+    if ($('btnLevante').disabled) return;
     $('btnLevante').disabled = true;
     var ahora = new Date();
     var r = Pastilla.procesarApertura(null, ahora); // null fuerza el cálculo de un día nuevo
     guardarEstado(r.estado);
+    ultimaFirma = null; // pintamos acá directo; que la próxima revisión no se saltee
     pintarResultado(r.estado, ahora);
     mostrarPantallaResultado();
     dispararAtajo(r.estado.tomas);
   }
 
-  function iniciar() {
+  // Qué se está mostrando ahora mismo. Sirve para no repintar la pantalla en
+  // cada latido si nada cambió (ver revisarDia).
+  var ultimaFirma = null;
+
+  function firmaDe(r, ahora) {
+    if (r.esNuevoDia) return 'boton';
+    var s = Pastilla.estadoPantalla(r.estado, ahora);
+    return r.estado.fechaInicio + '|' + (s.terminado ? 'fin' : s.proxima.getTime());
+  }
+
+  // Decide qué pantalla toca AHORA, según el reloj real. Nunca dispara el
+  // Atajo ni escribe nada: solo lee el estado y pinta. Es idempotente, así
+  // que se puede llamar cuantas veces se quiera.
+  //
+  // En iOS una PWA agregada a la pantalla de inicio no se recarga al tocar el
+  // ícono: se restaura congelada tal como quedó. Por eso el código de arranque
+  // no basta — al día siguiente ella seguía viendo las horas de ayer y el
+  // botón nunca reaparecía. Esta función se llama al cargar, al volver a
+  // primer plano, y una vez por minuto (ver iniciar).
+  function revisarDia() {
     var ahora = new Date();
     var r = Pastilla.procesarApertura(leerEstado(), ahora);
+
+    var firma = firmaDe(r, ahora);
+    if (firma === ultimaFirma) return;
 
     if (r.esNuevoDia) {
       // Primera apertura del día: solo el botón. Nada se calcula ni se
       // dispara hasta que ella toque — así el toque siempre corresponde
       // al momento real en que se levantó.
+      $('btnLevante').disabled = false;
       mostrarPantallaBoton();
     } else {
       // Ya tocó el botón hoy: mostrar directo lo ya calculado, sin
-      // recalcular ni volver a disparar el Atajo.
+      // recalcular ni volver a disparar el Atajo. Repintar acá además
+      // mantiene al día la línea de PRÓXIMA, que si no queda congelada.
+      $('btnLevante').disabled = true;
       pintarResultado(r.estado, ahora);
       mostrarPantallaResultado();
     }
 
-    $('btnLevante').addEventListener('click', alTocarBoton, { once: true });
+    // Recién acá, con la pantalla ya pintada. Si algo de arriba falló, la
+    // firma NO se guarda y el próximo latido vuelve a intentar en vez de
+    // quedarse creyendo que ya pintó.
+    ultimaFirma = firma;
+  }
+
+  // Envoltorio para las llamadas que no están dentro del try de arranque
+  // (latido y listeners): un error ahí no puede quedar en silencio.
+  function revisarDiaSeguro() {
+    try {
+      revisarDia();
+    } catch (e) {
+      mostrarError('Error al revisar el día: ' + (e && e.message ? e.message : e));
+    }
+  }
+
+  function iniciar() {
+    revisarDia();
+
+    $('btnLevante').addEventListener('click', alTocarBoton);
+
+    // Latido: revisa el reloj cada minuto. Si la app quedó abierta cuando pasa
+    // el corte de las 4am, el botón vuelve solo, sin que nadie toque nada.
+    // A propósito NO es un setTimeout largo hasta el corte: un temporizador de
+    // muchas horas en una pestaña que iOS suspende no es confiable. Un latido
+    // corto que consulta el reloj real sí — a lo sumo tarda un minuto en notarlo.
+    setInterval(revisarDiaSeguro, 60 * 1000);
+
+    // La app volvió a primer plano (tocó el ícono con la PWA ya en memoria,
+    // o volvió del Atajo). Mientras estuvo suspendida los temporizadores no
+    // corren, así que ésta es la revisión que de verdad la pone al día.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) revisarDiaSeguro();
+    });
+    // Safari puede restaurar la página desde el bfcache sin visibilitychange.
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) revisarDiaSeguro();
+    });
   }
 
   // Cualquier error inesperado se muestra en pantalla, nunca en silencio.

@@ -115,6 +115,16 @@ letras grandes:
   toques accidentales de tarde-noche que empujarían una toma a la madrugada.
   Ver `Pastilla.enSilencio` / `Pastilla.tomasConAlarma` en `app.js` y skill
   ciclo-dosis.
+- **La PWA no se recarga sola.** En iOS, tocar el ícono de la pantalla de
+  inicio NO recarga la página: iOS restaura la app congelada tal como quedó,
+  y el código de arranque no vuelve a correr. En un teléfono muy usado iOS la
+  descarta de memoria y parece recargar siempre; en el de ella, que hace poco
+  más, sobrevive días y la pantalla se queda pegada en el día anterior. Por eso
+  el cambio de día NO puede depender del arranque: `revisarDia()` en `app.js`
+  se llama al cargar, en `visibilitychange` (volver a primer plano), en
+  `pageshow` persisted, y en un latido de 60s. Consulta el reloj real cada vez
+  — nunca confiar en temporizadores largos, que iOS suspende. No revertir esto
+  a un chequeo de una sola vez al cargar.
 - Nada vuelve a mostrar el botón el mismo día lógico. Esa comparación de fecha
   es la única protección contra alarmas duplicadas — no tiene que haber forma
   de deshacerla desde la pantalla que ella usa (ver nota de debug abajo).
